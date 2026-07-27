@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Agenda Cycle & Business — SlowBoss</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Archivo:wght@400;500;600;700&display=swap');
+
+:root{ --ecru:#F2EDE4; --ink:#241F1B; }
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  font-family:'Archivo', sans-serif; color:var(--ink); min-height:100vh; display:flex; justify-content:center; align-items:flex-start;
+  background: linear-gradient(160deg, #3D1620 0%, #6B7F52 100%);
+  padding: 0;
+}
+h1,h2,h3{ font-family:'Fraunces', serif; }
+
+#app{
+  width:100%; max-width:430px; min-height:100vh;
+  background: var(--phase-bg, var(--ecru)); color: var(--phase-text, var(--ink));
+  display:flex; flex-direction:column; transition: background 0.5s ease, color 0.5s ease; position:relative;
+}
+@media (min-width: 500px){
+  body{ padding: 40px 20px; }
+  #app{ border-radius:28px; box-shadow: 0 30px 80px rgba(0,0,0,0.35); min-height: 780px; max-height: 860px; overflow:hidden; }
+}
+
+.onboard{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px 32px;
+  background: linear-gradient(160deg, #3D1620 0%, #6B2737 100%); color:#F2EDE4; }
+.onboard .eyebrow{ letter-spacing:0.14em; text-transform:uppercase; font-size:11px; opacity:0.7; margin-bottom:14px;}
+.onboard h1{ font-size:30px; line-height:1.15; font-weight:600; margin-bottom:14px;}
+.onboard p{ font-size:13.5px; line-height:1.6; opacity:0.85; margin-bottom:24px;}
+.onboard label{ display:block; font-size:12px; opacity:0.75; margin-bottom:6px; margin-top:16px;}
+.onboard input{ width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(242,237,228,0.3);
+  background:rgba(242,237,228,0.08); color:#F2EDE4; font-family:'Archivo'; font-size:15px; }
+.btn{ margin-top:28px; padding:14px; border:none; border-radius:10px; background:#E8D9A8; color:#3D1620;
+  font-weight:600; font-size:14px; cursor:pointer; font-family:'Archivo'; width:100%; }
+
+.topbar{ padding:22px 22px 8px 22px; }
+.topbar .eyebrow{ font-size:11px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.6;}
+.topbar h1{ font-size:22px; margin-top:4px; }
+
+.scroll{ flex:1; overflow-y:auto; padding-bottom:90px; }
+.section{ padding:8px 22px 4px 22px; }
+.card{ background:rgba(255,255,255,0.55); border-radius:16px; padding:16px 18px; margin-bottom:12px; }
+.card .label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.09em; opacity:0.6; margin-bottom:8px;}
+.card h3{ font-size:16px; margin-bottom:6px;}
+.card p{ font-size:13px; line-height:1.5; opacity:0.85;}
+.row{ display:flex; gap:8px; margin-bottom:10px; }
+.row > *{ flex:1; }
+input.f, textarea.f, select.f{
+  width:100%; padding:10px 12px; border-radius:9px; border:1px solid rgba(0,0,0,0.12);
+  background:rgba(255,255,255,0.6); font-family:'Archivo'; font-size:13.5px; color:var(--ink);
+}
+textarea.f{ resize:none; height:56px; }
+label.f{ font-size:11.5px; opacity:0.7; display:block; margin-bottom:5px; margin-top:8px; }
+.scale{ display:flex; gap:5px; }
+.scale div{ flex:1; aspect-ratio:1; border-radius:8px; border:1px solid rgba(0,0,0,0.12); display:flex; align-items:center;
+  justify-content:center; font-size:12px; cursor:pointer; background:rgba(255,255,255,0.4);}
+.scale div.active{ background:var(--phase-accent,#7A2E39); color:white; border-color:transparent;}
+.btn2{ margin-top:12px; width:100%; padding:11px; border:none; border-radius:9px; background:var(--phase-accent,#7A2E39);
+  color:white; font-weight:600; font-size:13.5px; cursor:pointer; }
+.chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+.chip{ font-size:11.5px; padding:6px 10px; border-radius:20px; background:rgba(255,255,255,0.5); cursor:pointer; border:1px solid rgba(0,0,0,0.08);}
+.chip.active{ background:var(--phase-accent,#7A2E39); color:white; border-color:transparent;}
+.list-item{ background:rgba(255,255,255,0.5); border-radius:11px; padding:10px 13px; margin-bottom:7px; font-size:12.5px;}
+.list-item .top{ display:flex; justify-content:space-between; opacity:0.6; font-size:10.5px; margin-bottom:3px;}
+
+.wheel-wrap{ display:flex; justify-content:center; padding:14px 0 6px 0; }
+.wheel{ width:190px; height:190px; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center;}
+.wheel-center{ width:118px; height:118px; border-radius:50%; background:var(--phase-bg,#fff); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;}
+.wheel-center .day{ font-size:10.5px; opacity:0.6; margin-bottom:2px;}
+.wheel-center .phase-name{ font-family:'Fraunces'; font-size:17px; font-weight:600;}
+.marker{ position:absolute; width:13px; height:13px; border-radius:50%; background:var(--phase-text,#241F1B); border:3px solid var(--phase-bg,#fff);}
+
+.seasons-list{ display:flex; flex-direction:column; gap:8px; }
+.wheel-legend{ display:flex; justify-content:center; gap:14px; padding:2px 0 10px 0; flex-wrap:wrap; }
+.wheel-legend .lg{ display:flex; align-items:center; gap:5px; font-size:10.5px; opacity:0.75; }
+.wheel-legend .sw{ width:9px; height:9px; border-radius:3px; }
+.cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-family:'Fraunces'; font-size:15px; }
+.cal-nav{ cursor:pointer; font-size:20px; padding:0 10px; opacity:0.6; }
+.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-grid .dname{ text-align:center; font-size:9.5px; opacity:0.5; text-transform:uppercase; padding-bottom:4px;}
+.cal-day{ min-height:52px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:5px 3px 3px 3px; font-size:11px; cursor:pointer; position:relative; text-align:center; }
+.cal-day .dnum{ font-weight:700; font-size:12px; }
+.cal-day .snippet{ font-size:7.5px; line-height:1.15; opacity:0.9; margin-top:2px; overflow:hidden; display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word; }
+.cal-day.today{ box-shadow:0 0 0 2px var(--ink,#241F1B) inset; }
+.cal-day.selected{ outline:2px solid var(--phase-accent,#7A2E39); outline-offset:2px; }
+.cal-day.empty{ visibility:hidden; }
+.cal-day .dot{ position:absolute; bottom:3px; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:0.8; }
+.season-row{ display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.4);}
+.season-dot{ width:10px; height:10px; border-radius:50%; margin-top:4px; flex-shrink:0;}
+.season-row.current{ box-shadow:0 0 0 2px var(--phase-accent,#7A2E39) inset; }
+.season-row b{ font-size:13px; } .season-row span{ font-size:12px; opacity:0.75; display:block;}
+
+.eis-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.eis-quad{ border-radius:12px; padding:10px; min-height:80px;}
+.eis-quad .qtitle{ font-size:10.5px; font-weight:700; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;}
+.eis-task{ background:rgba(255,255,255,0.6); border-radius:7px; padding:5px 8px; font-size:11.5px; margin-bottom:4px;}
+
+.navbar{ position:sticky; bottom:0; display:flex; background:rgba(255,255,255,0.7); backdrop-filter:blur(6px);
+  border-top:1px solid rgba(0,0,0,0.06); }
+.navbtn{ flex:1; text-align:center; padding:12px 0 8px 0; font-size:9.5px; cursor:pointer; opacity:0.5; }
+.navbtn.active{ opacity:1; font-weight:700; }
+.navbtn .ic{ font-size:16px; display:block; margin-bottom:2px;}
+.hidden{ display:none !important; }
+
+.daypage{
+  position:absolute; inset:0; z-index:30; background:var(--phase-bg, var(--ecru));
+  display:flex; flex-direction:column;
+}
+.daypage-head{ padding:20px 22px 6px 22px; }
+.daypage-back{ font-size:13.5px; cursor:pointer; opacity:0.8; font-weight:600; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="onboard" id="splash" style="justify-content:center; align-items:flex-start;">
+    <div class="eyebrow">Activ' ta SlowBoss® · Agenda Cycle & Business</div>
+    <h1 style="font-size:38px;">Hola Slow Boss ✨</h1>
+    <p style="font-size:15px;">Ton business a un rythme. On va le trouver ensemble, 30 secondes par jour.</p>
+    <button class="btn" onclick="showSignup()">C'est parti →</button>
+  </div>
+
+  <div class="onboard hidden" id="signup">
+    <div class="eyebrow" id="signup-eyebrow">Avant de commencer</div>
+    <h1 style="font-size:26px;" id="signup-title">Crée ton compte</h1>
+    <p>Tes données servent à sauvegarder ton agenda et à te tenir informée de mes programmes — jamais revendues à des tiers.</p>
+    <label id="su-name-label">Prénom</label>
+    <input type="text" id="su-name" placeholder="Ton prénom">
+    <label>Email</label>
+    <input type="email" id="su-email" placeholder="toi@email.com">
+    <label>Mot de passe</label>
+    <input type="password" id="su-password" placeholder="6 caractères minimum">
+    <label class="checkbox-row" id="consent-row" style="display:flex; align-items:flex-start; gap:8px; margin-top:16px; cursor:pointer;">
+      <input type="checkbox" id="su-consent" style="margin-top:3px;">
+      <span style="font-size:12.5px; opacity:0.85; line-height:1.4;">J'accepte de recevoir des emails sur les programmes et actualités d'Activ' ta SlowBoss® (facultatif, désinscription possible à tout moment).</span>
+    </label>
+    <p id="auth-error" style="color:#E8A99B; font-size:12.5px; margin-top:10px; margin-bottom:0;"></p>
+    <button class="btn" id="signup-submit-btn" onclick="finishSignup()">Créer mon compte</button>
+    <p style="margin-top:16px; font-size:12.5px; text-align:center; cursor:pointer; text-decoration:underline;" id="auth-toggle" onclick="toggleAuthMode()">J'ai déjà un compte → me connecter</p>
+  </div>
+
+  <div class="hidden" id="main">
+    <div class="topbar">
+      <div class="eyebrow" id="top-eyebrow">Aujourd'hui</div>
+      <h1 id="top-title">Ton agenda du jour</h1>
+    </div>
+
+    <div class="scroll">
+      <!-- AUJOURD'HUI -->
+      <div id="view-today" class="hidden">
+        <div class="section card">
+          <div class="label">🌿 Phase du jour</div>
+          <h3 id="t-phase">—</h3>
+        </div>
+        <div class="section">
+          <div class="card">
+            <div class="label">⚡ Énergie (1-5)</div>
+            <div class="scale" id="energy-scale"></div>
+            <label class="f">😌 Humeur (1-5)</label>
+            <div class="scale" id="mood-scale"></div>
+            <label class="f">🧠 Besoin principal</label>
+            <input class="f" id="in-need" placeholder="ex: calme, élan, clarté...">
+            <label class="f">🎯 1 priorité du jour</label>
+            <input class="f" id="in-priority" placeholder="La seule chose qui compte aujourd'hui">
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label class="f">💰 CA du jour (€)</label>
+                <input class="f" id="in-ca" type="number" placeholder="0">
+              </div>
+              <div>
+                <label class="f">📣 Visibilité</label>
+                <select class="f" id="in-visib">
+                  <option value="">Aucune</option>
+                  <option>Story</option><option>Post</option><option>Newsletter</option><option>Réel</option>
+                </select>
+              </div>
+            </div>
+            <label class="f">🌙 Micro-pause</label>
+            <input class="f" id="in-pause" placeholder="ex: 5 min dehors, thé, silence...">
+            <button class="btn2" onclick="saveDay()">Boucler ma journée ✅</button>
+          </div>
+        </div>
+        <div class="section" id="today-history"></div>
+      </div>
+
+      <!-- CYCLE -->
+      <div id="view-cycle">
+        <div class="wheel-wrap">
+          <div class="wheel" id="wheel">
+            <div class="wheel-center">
+              <div class="day" id="wheel-day">Jour 1/28</div>
+              <div class="phase-name" id="wheel-phase">Hiver</div>
+            </div>
+          </div>
+        </div>
+        <div class="wheel-legend" id="wheel-legend"></div>
+        <div class="section">
+          <div class="card">
+            <div class="cal-head">
+              <span class="cal-nav" onclick="prevMonth()">‹</span>
+              <b id="cal-month-label" style="cursor:pointer; text-decoration:underline dotted;" onclick="showView('bilan')">—</b>
+              <span class="cal-nav" onclick="nextMonth()">›</span>
+            </div>
+            <div class="cal-grid" id="cal-daynames"></div>
+            <div class="cal-grid" id="cal-grid"></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="card">
+            <div class="label">Réglages de ton cycle</div>
+            <button class="btn2" onclick="logPeriodToday()">🩸 Mes règles commencent aujourd'hui</button>
+            <label class="f">Premier jour de tes dernières règles</label>
+            <input class="f" type="date" id="set-date" onchange="updateSettings()">
+            <label class="f">Durée de tes règles (jours)</label>
+            <input class="f" type="number" id="set-period-length" min="2" max="10" onchange="updateSettings()">
+            <label class="f">Durée du cycle (jours) — modifiable</label>
+            <input class="f" type="number" id="set-length" min="21" max="40" onchange="updateSettings()">
+            <p style="margin-top:8px; opacity:0.6; font-size:11.5px;" id="auto-note"></p>
+          </div>
+          <div class="card">
+            <div class="label">Intentions par saison</div>
+            <div class="seasons-list" id="seasons-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUSINESS -->
+      <div id="view-business" class="hidden">
+        <div class="section">
+          <div class="card">
+            <div class="label">💶 Suivi du jour</div>
+            <div class="row">
+              <div><label class="f">💰 CA (€)</label><input class="f" id="b-ca" type="number"></div>
+              <div><label class="f">💸 Dépenses (€)</label><input class="f" id="b-dep" type="number"></div>
+              <div><label class="f">🧾 Entrées (#)</label><input class="f" id="b-entree" type="number"></div>
+            </div>
+            <button class="btn2" onclick="addBusiness()">Ajouter</button>
+          </div>
+          <div class="card">
+            <div class="label">CA total (session)</div>
+            <h3 id="ca-total">0 €</h3>
+          </div>
+          <div class="card" style="cursor:pointer;" onclick="showView('cycle')">
+            <div class="label">🎉 Bilan du mois</div>
+            <p style="margin:0;">Retrouve ton bilan complet en cliquant sur le nom du mois, dans l'onglet Agenda →</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISIBILITÉ -->
+      <div id="view-visib" class="hidden">
+        <div class="section">
+          <div class="card">
+            <div class="label">📣 Contenu</div>
+            <div class="row">
+              <select class="f" id="v-type"><option>Story</option><option>Post</option><option>Newsletter</option><option>Réel</option></select>
+              <input class="f" id="v-note" placeholder="idée / sujet">
+            </div>
+            <button class="btn2" onclick="addVisib()">Ajouter</button>
+          </div>
+          <div id="visib-list"></div>
+        </div>
+      </div>
+
+      <!-- PRIORITÉS (Eisenhower + Décharge) -->
+      <div id="view-priorites" class="hidden">
+        <div class="section">
+          <div class="card">
+            <div class="label">🧩 Matrice Eisenhower</div>
+            <div class="row">
+              <input class="f" id="e-task" placeholder="Une tâche...">
+            </div>
+            <div class="row">
+              <input class="f" id="e-date" type="date" placeholder="Date (optionnel)">
+            </div>
+            <div class="chip-row" id="e-quad-chips"></div>
+            <button class="btn2" onclick="addEisenhower()">Classer</button>
+          </div>
+          <div class="eis-grid" id="eis-grid"></div>
+          <div class="card" style="margin-top:14px;">
+            <div class="label">🧠 Décharge mentale</div>
+            <textarea class="f" id="d-note" placeholder="Dépose une idée, une inspiration, un truc à lâcher..."></textarea>
+            <div class="chip-row" id="d-tag-chips"></div>
+            <button class="btn2" onclick="addDecharge()">Déposer</button>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="label">🧠 Retrouve tes idées & inspirations</div>
+            <div class="chip-row" id="d-filter-chips"></div>
+          </div>
+          <div id="decharge-list"></div>
+        </div>
+      </div>
+
+      <!-- BILAN -->
+      <div id="view-bilan" class="hidden">
+        <div class="section">
+          <div class="card">
+            <div class="cal-head">
+              <span class="cal-nav" onclick="prevMonth()">‹</span>
+              <b id="bilan-title">—</b>
+              <span class="cal-nav" onclick="nextMonth()">›</span>
+            </div>
+            <div class="wheel-wrap" style="padding:6px 0;">
+              <div class="wheel" id="bilan-wheel" style="width:150px; height:150px;">
+                <div class="wheel-center" style="width:90px;height:90px;"></div>
+              </div>
+            </div>
+            <div class="wheel-legend" id="bilan-legend"></div>
+          </div>
+          <div class="card">
+            <div class="label">Chiffres clés</div>
+            <div class="row">
+              <div class="list-item" style="flex:1;"><div class="top"><span>💰 CA du mois</span></div><b id="bilan-ca-total">0 €</b></div>
+              <div class="list-item" style="flex:1;"><div class="top"><span>⚡ Énergie moy.</span></div><b id="bilan-energy-avg">—</b></div>
+            </div>
+            <div class="row">
+              <div class="list-item" style="flex:1;"><div class="top"><span>✅ Jours remplis</span></div><b id="bilan-days-filled">0</b></div>
+              <div class="list-item" style="flex:1;"><div class="top"><span>🗓️ RDV du mois</span></div><b id="bilan-rdv-count">0</b></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="label">🎉 Mini bilan du mois</div>
+            <label class="f">🧲 Ce qui a généré du CA</label>
+            <textarea class="f" id="bilan-genere" onchange="saveBilanNotes()"></textarea>
+            <label class="f">🔁 Ce qui se répète</label>
+            <textarea class="f" id="bilan-repete" onchange="saveBilanNotes()"></textarea>
+            <label class="f">➡️ Ce que j'ajuste le mois prochain</label>
+            <textarea class="f" id="bilan-ajuste2" onchange="saveBilanNotes()"></textarea>
+            <label class="f">🎉 Ce que je célèbre</label>
+            <textarea class="f" id="bilan-celebre" onchange="saveBilanNotes()"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="navbar">
+      <div class="navbtn active" id="nav-cycle" onclick="showView('cycle')"><span class="ic">◐</span>Agenda</div>
+      <div class="navbtn" id="nav-today" onclick="showView('today')"><span class="ic">✓</span>Saisie</div>
+      <div class="navbtn" id="nav-business" onclick="showView('business')"><span class="ic">€</span>Business</div>
+      <div class="navbtn" id="nav-visib" onclick="showView('visib')"><span class="ic">📣</span>Visib.</div>
+      <div class="navbtn" id="nav-priorites" onclick="showView('priorites')"><span class="ic">🧩</span>Priorités</div>
+      <div class="navbtn" id="nav-bilan" onclick="showView('bilan')"><span class="ic">🎉</span>Bilan</div>
+    </div>
+
+    <div class="daypage hidden" id="daypage">
+      <div class="daypage-head">
+        <span class="daypage-back" onclick="closeDayPage()">‹ Agenda</span>
+      </div>
+      <div class="scroll">
+        <div class="section">
+          <div class="card">
+            <div class="label" id="day-detail-title">—</div>
+            <div class="chip-row" id="day-detail-chips"></div>
+            <p id="day-detail-why" style="margin-top:10px; font-size:12.5px; line-height:1.5; opacity:0.85; font-style:italic;"></p>
+            <div style="margin-top:10px; font-size:13px; line-height:1.5;" id="day-detail-body"></div>
+          </div>
+          <div class="card">
+            <div class="label">📌 Tâches de ce jour (Matrice)</div>
+            <div id="day-eisenhower"></div>
+          </div>
+          <div class="card">
+            <div class="label">🗓️ RDV de ce jour</div>
+            <div id="day-rdv-list"></div>
+            <div class="row" style="margin-top:8px;">
+              <input class="f" id="rdv-time" type="time" style="max-width:90px;">
+              <input class="f" id="rdv-title" placeholder="Nom du rendez-vous">
+            </div>
+            <button class="btn2" onclick="addAppointment()">Ajouter le RDV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kwccdebatnlusudebhsb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_6SdhAAfGTUiTnqaPflbd4g_y6gVlnxx';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let authMode = 'signup'; // 'signup' | 'login'
+let currentUserId = null;
+let saveTimer = null;
+
+const state = {
+  cycleStart:null, cycleLength:28, periodLength:5, periods:[], autoLength:true, overrides:{}, calY:null, calM:null,
+  energy:0, mood:0,
+  history:[], businessEntries:[], visibEntries:[], eisenhower:{u_i:[],imp:[],urg:[],none:[]}, decharge:[], appointments:{},
+  currentQuad:'u_i', currentTag:'idée'
+};
+
+
+const SEASONS = {
+  hiver:   { name:"Hiver",     sub:"Menstruelle",     bg:"#3D1620", accent:"#C98A9A", soft:"#7A3E4C", text:"#F2EDE4", intent:"ralentir, trier, introspection", why:"Ton énergie basse est stratégique, pas un ralentissement à combler : c'est ta fenêtre pour l'audit Pareto avant d'agir.", cal:"#C0392B", calText:"#FFF" },
+  printemps:{ name:"Printemps", sub:"Pré-ovulatoire",  bg:"#EEF1E6", accent:"#6B7F52", soft:"#C9D3B8", text:"#2B2A22", intent:"planifier, créer, initier", why:"L'élan revient : c'est le moment de planter tes idées, elles porteront leurs fruits en été.", cal:"#8AA06B", calText:"#20260F" },
+  ete:     { name:"Été",       sub:"Ovulatoire",      bg:"#F6E3DF", accent:"#7A2E39", soft:"#E3B3AE", text:"#2B2A22", intent:"visibilité, échanges, décisions", why:"Pic de rayonnement et d'aisance sociale : ta fenêtre haute pour vendre, te montrer, décider.", cal:"#E0793C", calText:"#FFF" },
+  automne: { name:"Automne",   sub:"Lutéale",         bg:"#F2EDE4", accent:"#9C7A4A", soft:"#DCC89A", text:"#2B2A22", intent:"finaliser, simplifier, clôturer", why:"Le recul sert à clôturer proprement, déléguer, et préparer le mois suivant avec clarté.", cal:"#C9A227", calText:"#2B2200" }
+};
+const ORDER = ['hiver','printemps','ete','automne'];
+
+function phaseBoundaries(cl){
+  const mEnd=Math.min(state.periodLength, cl-3);
+  const remaining=cl-mEnd;
+  const fEnd=mEnd+Math.round(remaining*8/23);
+  const oEnd=mEnd+Math.round(remaining*11/23);
+  return {mEnd,fEnd,oEnd};
+}
+function isoLocal(date){
+  const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function seasonForDay(dayInCycle, cl){
+  const {mEnd,fEnd,oEnd}=phaseBoundaries(cl);
+  if(dayInCycle<=mEnd) return 'hiver';
+  if(dayInCycle<=fEnd) return 'printemps';
+  if(dayInCycle<=oEnd) return 'ete';
+  return 'automne';
+}
+function dayInCycleFor(date){
+  const start=new Date(state.cycleStart);
+  const diff=Math.floor((date-start)/86400000);
+  let d=diff % state.cycleLength; if(d<0) d+=state.cycleLength;
+  return d+1;
+}
+function applyTheme(s){
+  const app=document.getElementById('app');
+  app.style.setProperty('--phase-bg', SEASONS[s].bg);
+  app.style.setProperty('--phase-text', SEASONS[s].text);
+  app.style.setProperty('--phase-accent', SEASONS[s].accent);
+}
+function getPhaseForDate(date){
+  const key = isoLocal(date);
+  if(state.overrides[key]) return state.overrides[key];
+  return seasonForDay(dayInCycleFor(date), state.cycleLength);
+}
+function buildMonthWheel(year, month, wheelId, legendId){
+  wheelId = wheelId || 'wheel'; legendId = legendId || 'wheel-legend';
+  const wheel=document.getElementById(wheelId);
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const counts={hiver:0,printemps:0,ete:0,automne:0};
+  for(let day=1; day<=daysInMonth; day++){
+    counts[getPhaseForDate(new Date(year,month,day))]++;
+  }
+  let acc=0; const stops=[];
+  ORDER.forEach(k=>{
+    const startPct=(acc/daysInMonth*100).toFixed(2);
+    acc+=counts[k];
+    const endPct=(acc/daysInMonth*100).toFixed(2);
+    if(counts[k]>0) stops.push(`${SEASONS[k].cal} ${startPct}% ${endPct}%`);
+  });
+  wheel.style.background = stops.length ? `conic-gradient(from -90deg, ${stops.join(',')})` : SEASONS.hiver.cal;
+  document.getElementById(legendId).innerHTML = ORDER.map(k=>
+    `<div class="lg"><span class="sw" style="background:${SEASONS[k].cal}"></span>${SEASONS[k].name} · ${counts[k]}j</div>`).join('');
+}
+function prevMonth(){ state.calM--; if(state.calM<0){state.calM=11; state.calY--;} render(); }
+function nextMonth(){ state.calM++; if(state.calM>11){state.calM=0; state.calY++;} render(); }
+const OVERRIDE_CYCLE=['auto','hiver','printemps','ete','automne'];
+function selectCalDay(dateStr){
+  state.selectedDay = dateStr;
+  renderCalendar();
+  renderDayDetail();
+  document.getElementById('daypage').classList.remove('hidden');
+}
+function closeDayPage(){
+  document.getElementById('daypage').classList.add('hidden');
+}
+const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+function renderBilan(){
+  const y=state.calY, m=state.calM;
+  document.getElementById('bilan-title').textContent = `${MONTH_NAMES[m]} ${y}`;
+  buildMonthWheel(y, m, 'bilan-wheel', 'bilan-legend');
+
+  const monthEntries = state.history.filter(h=>{
+    const d=new Date(h.dateISO+'T00:00:00');
+    return d.getFullYear()===y && d.getMonth()===m;
+  });
+  const caTotal = monthEntries.reduce((a,e)=>a+(parseFloat(e.ca)||0),0)
+    + state.businessEntries.reduce((a,e)=>a+(e.ca||0),0); // session business entries, non datées dans ce prototype
+  const energies = monthEntries.map(e=>parseInt(e.energy)).filter(n=>!isNaN(n));
+  const energyAvg = energies.length ? (energies.reduce((a,b)=>a+b,0)/energies.length).toFixed(1) : '—';
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const rdvCount = Object.keys(state.appointments).filter(dateStr=>{
+    const d=new Date(dateStr+'T00:00:00');
+    return d.getFullYear()===y && d.getMonth()===m;
+  }).reduce((a,k)=>a+state.appointments[k].length,0);
+
+  document.getElementById('bilan-ca-total').textContent = caTotal.toFixed(0)+' €';
+  document.getElementById('bilan-energy-avg').textContent = energyAvg==='—' ? '—' : energyAvg+'/5';
+  document.getElementById('bilan-days-filled').textContent = `${monthEntries.length}/${daysInMonth}`;
+  document.getElementById('bilan-rdv-count').textContent = rdvCount;
+
+  if(!state.bilanNotes) state.bilanNotes={};
+  const key=`${y}-${m}`;
+  const notes = state.bilanNotes[key] || {genere:'',repete:'',ajuste:'',celebre:''};
+  document.getElementById('bilan-genere').value=notes.genere;
+  document.getElementById('bilan-repete').value=notes.repete;
+  document.getElementById('bilan-ajuste2').value=notes.ajuste;
+  document.getElementById('bilan-celebre').value=notes.celebre;
+}
+function saveBilanNotes(){
+  const key=`${state.calY}-${state.calM}`;
+  if(!state.bilanNotes) state.bilanNotes={};
+  state.bilanNotes[key]={
+    genere:document.getElementById('bilan-genere').value,
+    repete:document.getElementById('bilan-repete').value,
+    ajuste:document.getElementById('bilan-ajuste2').value,
+    celebre:document.getElementById('bilan-celebre').value
+  };
+  schedulePersist();
+}
+function setSelectedDayPhase(phase){
+  const dateStr = state.selectedDay;
+  if(phase==='auto') delete state.overrides[dateStr]; else state.overrides[dateStr]=phase;
+  render();
+  renderDayDetail();
+  schedulePersist();
+}
+function renderCalendar(){
+  const y=state.calY, m=state.calM;
+  const monthNames=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-month-label').textContent = `${monthNames[m]} ${y}`;
+  document.getElementById('cal-daynames').innerHTML = ['Lu','Ma','Me','Je','Ve','Sa','Di'].map(d=>`<div class="dname">${d}</div>`).join('');
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  let firstDow=new Date(y,m,1).getDay(); firstDow=(firstDow+6)%7; // Monday=0
+  const todayStr=isoLocal(new Date());
+  if(!state.selectedDay) state.selectedDay=todayStr;
+  let html='';
+  for(let i=0;i<firstDow;i++) html+=`<div class="cal-day empty"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const dateObj=new Date(y,m,day);
+    const dateStr=isoLocal(dateObj);
+    const phase=getPhaseForDate(dateObj);
+    const sea=SEASONS[phase];
+    const entry = state.history.find(h=>h.dateISO===dateStr);
+    const hasRdv = (state.appointments[dateStr]||[]).length>0;
+    const cls=[dateStr===todayStr?'today':'', dateStr===state.selectedDay?'selected':''].join(' ');
+    const snippet = entry && entry.priority ? `<div class="snippet">${entry.priority}</div>` : (entry ? '<span class="dot"></span>' : '');
+    html+=`<div class="cal-day ${cls}" style="background:${sea.cal};color:${sea.calText}" onclick="selectCalDay('${dateStr}')"><span class="dnum">${day}${hasRdv?' 🗓️':''}</span>${snippet}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function renderDayDetail(){
+  const dateStr=state.selectedDay;
+  if(!dateStr) return;
+  const dateObj=new Date(dateStr+'T00:00:00');
+  const phase=getPhaseForDate(dateObj);
+  const entry=state.history.find(h=>h.dateISO===dateStr);
+  const isOverride=!!state.overrides[dateStr];
+  const nice=dateObj.toLocaleDateString('fr-FR',{weekday:'long', day:'numeric', month:'long'});
+
+  document.getElementById('day-detail-title').textContent = nice;
+  document.getElementById('day-detail-chips').innerHTML =
+    `<div class="chip ${!isOverride?'active':''}" onclick="setSelectedDayPhase('auto')">Auto</div>` +
+    ORDER.map(k=>`<div class="chip ${isOverride && state.overrides[dateStr]===k?'active':''}" onclick="setSelectedDayPhase('${k}')">${SEASONS[k].name}</div>`).join('');
+
+  document.getElementById('day-detail-body').innerHTML = entry ? `
+    <div class="top" style="margin-bottom:4px;"><span>⚡ Énergie ${entry.energy}</span><span>😌 Humeur ${entry.mood}</span></div>
+    <b>${entry.priority || 'Sans priorité notée'}</b><br>
+    ${entry.need?('🧠 '+entry.need+'<br>'):''}${entry.ca?('💰 '+entry.ca+'€ · '):''}${entry.visib?('📣 '+entry.visib+' · '):''}${entry.pause?('🌙 '+entry.pause):''}
+  ` : `<span style="opacity:0.55;">Aucune info enregistrée ce jour-là.</span>`;
+
+  document.getElementById('day-detail-why').textContent = `${SEASONS[phase].name} — ${SEASONS[phase].why}`;
+
+  const tasks = eisenhowerTasksForDate(dateStr);
+  document.getElementById('day-eisenhower').innerHTML = tasks.length
+    ? tasks.map(t=>`<div class="list-item"><span style="opacity:0.6;font-size:10.5px;">${QUADS[t.quad].label}</span><br>${t.task}</div>`).join('')
+    : `<span style="opacity:0.5;font-size:12.5px;">Aucune tâche classée pour ce jour. Ajoute une date à une tâche dans l'onglet Priorités pour qu'elle apparaisse ici.</span>`;
+
+  const rdvs = state.appointments[dateStr] || [];
+  document.getElementById('day-rdv-list').innerHTML = rdvs.length
+    ? rdvs.sort((a,b)=>a.time.localeCompare(b.time)).map(r=>`<div class="list-item"><b>${r.time||'--:--'}</b> · ${r.title}</div>`).join('')
+    : `<span style="opacity:0.5;font-size:12.5px;">Aucun RDV noté pour ce jour.</span>`;
+}
+function addAppointment(){
+  const dateStr=state.selectedDay;
+  const time=document.getElementById('rdv-time').value;
+  const title=document.getElementById('rdv-title').value;
+  if(!title) return;
+  if(!state.appointments[dateStr]) state.appointments[dateStr]=[];
+  state.appointments[dateStr].push({time,title});
+  document.getElementById('rdv-time').value=''; document.getElementById('rdv-title').value='';
+  renderDayDetail();
+  renderCalendar();
+  schedulePersist();
+}
+function buildScale(id, prop){
+  const el=document.getElementById(id); el.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const d=document.createElement('div'); d.textContent=i;
+    d.onclick=()=>{ state[prop]=i; [...el.children].forEach(c=>c.classList.remove('active')); d.classList.add('active'); };
+    el.appendChild(d);
+  }
+}
+function recomputeAutoLength(){
+  if(state.periods.length>=2 && state.autoLength){
+    const sorted=[...state.periods].sort();
+    let diffs=[];
+    for(let i=1;i<sorted.length;i++){
+      diffs.push(Math.round((new Date(sorted[i])-new Date(sorted[i-1]))/86400000));
+    }
+    const avg=Math.round(diffs.reduce((a,b)=>a+b,0)/diffs.length);
+    if(avg>=21 && avg<=40) state.cycleLength=avg;
+  }
+}
+function logPeriodToday(){
+  const todayStr=isoLocal(new Date());
+  state.periods.push(todayStr);
+  state.cycleStart=todayStr;
+  recomputeAutoLength();
+  render();
+  schedulePersist();
+}
+function updateSettings(){
+  const dateVal=document.getElementById('set-date').value;
+  const lengthVal=parseInt(document.getElementById('set-length').value)||28;
+  const periodVal=parseInt(document.getElementById('set-period-length').value)||5;
+  if(dateVal){ state.cycleStart=dateVal; state.autoLength=false; }
+  state.cycleLength=lengthVal; state.periodLength=periodVal; state.autoLength=false;
+  render();
+  schedulePersist();
+}
+
+function render(){
+  const today=new Date();
+  if(state.calY===null){ state.calY=today.getFullYear(); state.calM=today.getMonth(); }
+  const d=dayInCycleFor(today);
+  const s=getPhaseForDate(today);
+  applyTheme(s);
+  buildMonthWheel(state.calY, state.calM);
+  renderCalendar();
+  renderDayDetail();
+  renderBilan();
+  document.getElementById('wheel-day').textContent=`Jour ${d}/${state.cycleLength}`;
+  document.getElementById('wheel-phase').textContent=SEASONS[s].name;
+  document.getElementById('top-title').textContent=SEASONS[s].name+' · '+SEASONS[s].sub;
+  document.getElementById('t-phase').textContent=`${SEASONS[s].name} (${SEASONS[s].sub}) — ${SEASONS[s].intent}`;
+
+  document.getElementById('seasons-list').innerHTML = ORDER.map(k=>{
+    const sea=SEASONS[k];
+    return `<div class="season-row ${k===s?'current':''}">
+      <div class="season-dot" style="background:${sea.accent}"></div>
+      <div><b>${sea.name}</b> <span style="opacity:0.5">(${sea.sub})</span><span>${sea.intent}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('set-date').value=state.cycleStart;
+  document.getElementById('set-length').value=state.cycleLength;
+  document.getElementById('set-period-length').value=state.periodLength;
+  document.getElementById('auto-note').textContent = state.periods.length>=2
+    ? `Durée calculée automatiquement sur tes ${state.periods.length} derniers cycles enregistrés. Tu peux toujours la corriger à la main.`
+    : `Enregistre 2 cycles avec le bouton "règles" pour que la durée se calcule toute seule. En attendant, ajuste-la librement.`;
+
+  buildScale('energy-scale','energy');
+  buildScale('mood-scale','mood');
+  renderTodayHistory();
+  renderBusiness();
+  renderVisib();
+  buildQuadChips();
+  buildTagChips();
+  renderEisenhower();
+  renderDecharge();
+}
+
+function saveDay(){
+  const today=new Date();
+  const s=seasonForDay(dayInCycleFor(today), state.cycleLength);
+  state.history.unshift({
+    dateISO: isoLocal(today),
+    date: today.toLocaleDateString('fr-FR'), season:SEASONS[s].name,
+    energy: state.energy||'—', mood: state.mood||'—',
+    need: document.getElementById('in-need').value,
+    priority: document.getElementById('in-priority').value,
+    ca: document.getElementById('in-ca').value,
+    visib: document.getElementById('in-visib').value,
+    pause: document.getElementById('in-pause').value
+  });
+  ['in-need','in-priority','in-ca','in-pause'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('in-visib').value='';
+  renderTodayHistory();
+  renderCalendar();
+  schedulePersist();
+}
+function renderTodayHistory(){
+  document.getElementById('today-history').innerHTML = state.history.map(h=>`
+    <div class="list-item">
+      <div class="top"><span>${h.date} · ${h.season}</span><span>⚡${h.energy} 😌${h.mood}</span></div>
+      <b>${h.priority||'Sans priorité notée'}</b><br>
+      ${h.need?('🧠 '+h.need+'<br>'):''}${h.ca?('💰 '+h.ca+'€ · '):''}${h.visib?('📣 '+h.visib+' · '):''}${h.pause?('🌙 '+h.pause):''}
+    </div>`).join('') || '';
+}
+
+function addBusiness(){
+  const ca=parseFloat(document.getElementById('b-ca').value)||0;
+  const dep=parseFloat(document.getElementById('b-dep').value)||0;
+  const ent=document.getElementById('b-entree').value||0;
+  state.businessEntries.unshift({ca,dep,ent,date:new Date().toLocaleDateString('fr-FR')});
+  document.getElementById('b-ca').value=''; document.getElementById('b-dep').value=''; document.getElementById('b-entree').value='';
+  renderBusiness();
+  schedulePersist();
+}
+function renderBusiness(){
+  const total=state.businessEntries.reduce((a,e)=>a+e.ca,0);
+  document.getElementById('ca-total').textContent = total.toFixed(0)+' €';
+}
+
+function addVisib(){
+  const type=document.getElementById('v-type').value;
+  const note=document.getElementById('v-note').value;
+  if(!note) return;
+  state.visibEntries.unshift({type,note,published:false,recycle:false});
+  document.getElementById('v-note').value='';
+  renderVisib();
+  schedulePersist();
+}
+function toggleVisib(i,field){ state.visibEntries[i][field]=!state.visibEntries[i][field]; renderVisib(); schedulePersist(); }
+function renderVisib(){
+  document.getElementById('visib-list').innerHTML = state.visibEntries.map((v,i)=>`
+    <div class="list-item">
+      <div class="top"><span>${v.type}</span></div>
+      ${v.note}
+      <div class="chip-row">
+        <div class="chip ${v.published?'active':''}" onclick="toggleVisib(${i},'published')">✅ Publié</div>
+        <div class="chip ${v.recycle?'active':''}" onclick="toggleVisib(${i},'recycle')">♻️ À recycler</div>
+      </div>
+    </div>`).join('');
+}
+
+const QUADS = { u_i:{label:'🔥 Urgent + important', color:'#F2C6C6'}, imp:{label:'🟠 Important', color:'#F4DDB4'},
+  urg:{label:'🟣 Urgent (déléguer)', color:'#D9CBEB'}, none:{label:'⚪ Ni urgent ni important', color:'#E4E4E0'} };
+function buildQuadChips(){
+  const el=document.getElementById('e-quad-chips');
+  el.innerHTML = Object.keys(QUADS).map(k=>`<div class="chip ${state.currentQuad===k?'active':''}" onclick="setQuad('${k}')">${QUADS[k].label}</div>`).join('');
+}
+function setQuad(k){ state.currentQuad=k; buildQuadChips(); }
+function addEisenhower(){
+  const t=document.getElementById('e-task').value;
+  const dt=document.getElementById('e-date').value;
+  if(!t) return;
+  state.eisenhower[state.currentQuad].push({task:t, date:dt||null});
+  document.getElementById('e-task').value=''; document.getElementById('e-date').value='';
+  renderEisenhower();
+  renderDayDetail();
+  schedulePersist();
+}
+function renderEisenhower(){
+  document.getElementById('eis-grid').innerHTML = Object.keys(QUADS).map(k=>`
+    <div class="eis-quad" style="background:${QUADS[k].color}">
+      <div class="qtitle">${QUADS[k].label}</div>
+      ${state.eisenhower[k].map(t=>`<div class="eis-task">${t.task}${t.date?(' <span style="opacity:0.6;">· '+t.date.slice(8,10)+'/'+t.date.slice(5,7)+'</span>'):''}</div>`).join('')}
+    </div>`).join('');
+}
+function eisenhowerTasksForDate(dateStr){
+  let out=[];
+  Object.keys(QUADS).forEach(k=>{
+    state.eisenhower[k].filter(t=>t.date===dateStr).forEach(t=>out.push({...t, quad:k}));
+  });
+  return out;
+}
+
+const TAGS=['idée','inspiration','à abandonner'];
+function buildTagChips(){
+  const el=document.getElementById('d-tag-chips');
+  el.innerHTML = TAGS.map(t=>`<div class="chip ${state.currentTag===t?'active':''}" onclick="setTag('${t}')">${t}</div>`).join('');
+}
+function setTag(t){ state.currentTag=t; buildTagChips(); }
+function addDecharge(){
+  const note=document.getElementById('d-note').value;
+  if(!note) return;
+  state.decharge.unshift({note, tag:state.currentTag});
+  document.getElementById('d-note').value='';
+  renderDecharge();
+  schedulePersist();
+}
+function renderDecharge(){
+  if(!state.dechargeFilter) state.dechargeFilter='tous';
+  const filtered = state.dechargeFilter==='tous' ? state.decharge : state.decharge.filter(d=>d.tag===state.dechargeFilter);
+  document.getElementById('decharge-list').innerHTML = filtered.length ? filtered.map(d=>`
+    <div class="list-item"><div class="top"><span>${d.tag}</span></div>${d.note}</div>`).join('')
+    : `<span style="opacity:0.5;font-size:12.5px;">Rien ici pour l'instant.</span>`;
+  const filterEl=document.getElementById('d-filter-chips');
+  const options=['tous',...TAGS];
+  filterEl.innerHTML = options.map(t=>`<div class="chip ${state.dechargeFilter===t?'active':''}" onclick="setDechargeFilter('${t}')">${t}</div>`).join('');
+}
+function setDechargeFilter(t){ state.dechargeFilter=t; renderDecharge(); }
+
+function showView(name){
+  ['today','cycle','business','visib','priorites','bilan'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hidden', v!==name);
+    document.getElementById('nav-'+v).classList.toggle('active', v===name);
+  });
+  const labels={today:"Saisie du jour", cycle:'Ton agenda', business:'Business', visib:'Visibilité', priorites:'Priorités', bilan:'Bilan du mois'};
+  document.getElementById('top-eyebrow').textContent = name==='cycle' && state.userName ? `Salut ${state.userName} 🌙` : labels[name];
+}
+
+function showSignup(){
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('signup').classList.remove('hidden');
+}
+function toggleAuthMode(){
+  authMode = authMode==='signup' ? 'login' : 'signup';
+  document.getElementById('auth-error').textContent='';
+  if(authMode==='login'){
+    document.getElementById('signup-eyebrow').textContent='Content de te revoir';
+    document.getElementById('signup-title').textContent='Connecte-toi';
+    document.getElementById('su-name-label').classList.add('hidden');
+    document.getElementById('su-name').classList.add('hidden');
+    document.getElementById('consent-row').classList.add('hidden');
+    document.getElementById('signup-submit-btn').textContent='Se connecter';
+    document.getElementById('auth-toggle').textContent="Pas encore de compte → en créer un";
+  } else {
+    document.getElementById('signup-eyebrow').textContent='Avant de commencer';
+    document.getElementById('signup-title').textContent='Crée ton compte';
+    document.getElementById('su-name-label').classList.remove('hidden');
+    document.getElementById('su-name').classList.remove('hidden');
+    document.getElementById('consent-row').classList.remove('hidden');
+    document.getElementById('signup-submit-btn').textContent='Créer mon compte';
+    document.getElementById('auth-toggle').textContent="J'ai déjà un compte → me connecter";
+  }
+}
+async function finishSignup(){
+  const name=document.getElementById('su-name').value.trim();
+  const email=document.getElementById('su-email').value.trim();
+  const password=document.getElementById('su-password').value;
+  const errEl=document.getElementById('auth-error');
+  errEl.textContent='';
+
+  if(!email || !password){ errEl.textContent='Email et mot de passe obligatoires.'; return; }
+  if(authMode==='signup' && !name){ errEl.textContent='Ton prénom est obligatoire.'; return; }
+
+  const btn=document.getElementById('signup-submit-btn');
+  btn.textContent='Un instant...'; btn.disabled=true;
+
+  if(authMode==='signup'){
+    const consent = document.getElementById('su-consent').checked;
+    const {data, error} = await sb.auth.signUp({ email, password, options:{ data:{ name, marketing_consent: consent } } });
+    btn.disabled=false; btn.textContent='Créer mon compte';
+    if(error){ errEl.textContent=error.message; return; }
+    currentUserId = data.user.id;
+    state.userName = name;
+    state.marketingConsent = consent;
+    const todayStr=isoLocal(new Date());
+    state.cycleStart=todayStr; state.cycleLength=28; state.periodLength=5; state.periods=[todayStr];
+    await persistState();
+    enterApp();
+  } else {
+    const {data, error} = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled=false; btn.textContent='Se connecter';
+    if(error){ errEl.textContent="Email ou mot de passe incorrect."; return; }
+    currentUserId = data.user.id;
+    await loadState();
+    enterApp();
+  }
+}
+function enterApp(){
+  document.getElementById('signup').classList.add('hidden');
+  document.getElementById('main').classList.remove('hidden');
+  render();
+  showView('cycle');
+}
+async function persistState(){
+  if(!currentUserId) return;
+  await sb.from('user_data').upsert({ user_id: currentUserId, data: state, updated_at: new Date().toISOString() });
+}
+function schedulePersist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistState, 800);
+}
+async function loadState(){
+  const { data, error } = await sb.from('user_data').select('data').eq('user_id', currentUserId).single();
+  if(data && data.data){
+    Object.assign(state, data.data);
+  }
+}
+// Vérifie si une session existe déjà (retour sur l'appli)
+(async function checkSession(){
+  const { data } = await sb.auth.getSession();
+  if(data && data.session){
+    currentUserId = data.session.user.id;
+    await loadState();
+    document.getElementById('splash').classList.add('hidden');
+    enterApp();
+  }
+})();
+</script>
+</body>
+</html>
